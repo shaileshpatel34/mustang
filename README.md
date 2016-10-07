@@ -1,17 +1,17 @@
 # mustang
-1. Installation of Freeswitch 1 and 2. 
+# 1. Installation of Freeswitch 1 and 2. 
 	root@shaileshpatel-freeswitch1:~#wget -O - https://files.freeswitch.org/repo/deb/debian/freeswitch_archive_g0.pub | apt-key add -
  
 	root@shaileshpatel-freeswitch1:~#echo "deb http://files.freeswitch.org/repo/deb/freeswitch-1.6/ jessie main" > /etc/apt/sources.list.d/freeswitch.list
  
-	# you may want to populate /etc/freeswitch at this point.
-	# if /etc/freeswitch does not exist, the standard vanilla configuration is deployed
+	you may want to populate /etc/freeswitch at this point.
+	if /etc/freeswitch does not exist, the standard vanilla configuration is deployed
 	root@shaileshpatel-freeswitch1:~#apt-get update && apt-get install -y freeswitch-meta-all
 
-2. Installation of Kamailio.
+# 2. Installation of Kamailio.
 	root@shaileshpatel-kamailio:/usr/local/etc# apt-get install kamailio kamailio-sqlite-modules sqlite3
 	
-3. Configure Kamailio as registrar.
+# 3. Configure Kamailio as registrar.
 	create directory for the sqlite database. 
 	mkdir /usr/local/etc/kamailio
 	
@@ -85,7 +85,7 @@
 	kamctl add testplivo1 plivo0001
 	kamctl add testplivo2 plivo0002
 	
-4. Round-robin scheduling in the kamailio using dispatcher module. 
+# 4. Round-robin scheduling in the kamailio using dispatcher module. 
 	http://kamailio.org/docs/modules/4.1.x/modules/dispatcher.html
 	edit kamailio config script for the dispatcher module configuration.
 	
@@ -182,7 +182,7 @@
 			}
 	}
 
-6. Both freeswitch - Allow sip traffic from the ip address of kamailio. 
+# 6. Both freeswitch - Allow sip traffic from the ip address of kamailio. 
 	root@shaileshpatel-freeswitch1:/etc/freeswitch# cat /etc/freeswitch/autoload_configs/acl.conf.xml
 	
     <list name="domains" default="deny">
@@ -204,7 +204,7 @@
       </condition>
     </extension>
 
-7. Playing mp3 files from the http url.
+# 7. Playing mp3 files from the http url.
 
 	===================
 	i did re-installation of the freeswitch from the source. 
@@ -263,7 +263,7 @@
         </condition>
     </extension>
 
-8. bridging between two users. dialplan extension needs be added as below.
+# 8. bridging between two users. dialplan extension needs be added as below.
 
     <extension name="bridgetest">
         <condition field="destination_number" expression="^(15556667777)$">
@@ -319,8 +319,3 @@
 							return;
 			}
 	}
-	
- 
- 
-
-	
