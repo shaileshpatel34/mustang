@@ -1,16 +1,13 @@
 # mustang
 # 1. Installation of Freeswitch 1 and 2. 
 	root@shaileshpatel-freeswitch1:~#wget -O - https://files.freeswitch.org/repo/deb/debian/freeswitch_archive_g0.pub | apt-key add -
- 
 	root@shaileshpatel-freeswitch1:~#echo "deb http://files.freeswitch.org/repo/deb/freeswitch-1.6/ jessie main" > /etc/apt/sources.list.d/freeswitch.list
- 
-	you may want to populate /etc/freeswitch at this point.
-	if /etc/freeswitch does not exist, the standard vanilla configuration is deployed
-	root@shaileshpatel-freeswitch1:~#apt-get update && apt-get install -y freeswitch-meta-all
 
+	# you may want to populate /etc/freeswitch at this point.
+	# if /etc/freeswitch does not exist, the standard vanilla configuration is deployed
+	root@shaileshpatel-freeswitch1:~#apt-get update && apt-get install -y freeswitch-meta-all
 # 2. Installation of Kamailio.
 	root@shaileshpatel-kamailio:/usr/local/etc# apt-get install kamailio kamailio-sqlite-modules sqlite3
-	
 # 3. Configure Kamailio as registrar.
 	create directory for the sqlite database. 
 	mkdir /usr/local/etc/kamailio
@@ -84,7 +81,6 @@
 	
 	kamctl add testplivo1 plivo0001
 	kamctl add testplivo2 plivo0002
-	
 # 4. Round-robin scheduling in the kamailio using dispatcher module. 
 	http://kamailio.org/docs/modules/4.1.x/modules/dispatcher.html
 	edit kamailio config script for the dispatcher module configuration.
@@ -112,8 +108,8 @@
 
 	configure dispatcher parameters. 
 	# ----- dispatcher params -----
-	modparam("dispatcher", "db_url", DBURL)
-	modparam("dispatcher", "table_name", "dispatcher")
+	# modparam("dispatcher", "db_url", DBURL)
+	# modparam("dispatcher", "table_name", "dispatcher")
 	modparam("dispatcher", "flags", 2)
 	modparam("dispatcher", "dst_avp", "$avp(AVP_DST)")
 	modparam("dispatcher", "grp_avp", "$avp(AVP_GRP)")
@@ -162,56 +158,55 @@
 	List freeswitch servers. like below for the confirmation of configuration. 
 	root@shaileshpatel-kamailio:~# kamcmd dispatcher.list
 	{
-			NRSETS: 1
-			RECORDS: {
-					SET: {
-							ID: 1
-							TARGETS: {
-									DEST: {
-											URI: sip:23.253.221.151:5060
-											FLAGS: AX
-											PRIORITY: 0
-									}
-									DEST: {
-											URI: sip:23.253.221.87:5060
-											FLAGS: AX
-											PRIORITY: 0
-									}
-							}
+		NRSETS: 1
+		RECORDS: {
+			SET: {
+				ID: 1
+				TARGETS: {
+					DEST: {
+							URI: sip:23.253.221.151:5060
+							FLAGS: AX
+							PRIORITY: 0
 					}
+					DEST: {
+							URI: sip:23.253.221.87:5060
+							FLAGS: AX
+							PRIORITY: 0
+					}
+				}
 			}
+		}
 	}
 
 # 6. Both freeswitch - Allow sip traffic from the ip address of kamailio. 
+	Chagne access control list. and allow traffic from the kamailio to both free switch. 
+	
 	root@shaileshpatel-freeswitch1:/etc/freeswitch# cat /etc/freeswitch/autoload_configs/acl.conf.xml
 	
-    <list name="domains" default="deny">
-      <!-- domain= is special it scans the domain from the directory to build the ACL -->
-      <node type="allow" domain="$${domain}"/>
-      <!-- use cidr= if you wish to allow ip ranges to this domains acl. -->
-      <!-- <node type="allow" cidr="192.168.0.0/24"/> -->
-      <node type="allow" cidr="23.253.221.228/32"/>
-    </list>
+	<list name="domains" default="deny">
+		<!-- domain= is special it scans the domain from the directory to build the ACL -->
+		<node type="allow" domain="$${domain}"/>
+		<!-- use cidr= if you wish to allow ip ranges to this domains acl. -->
+		<!-- <node type="allow" cidr="192.168.0.0/24"/> -->
+		<node type="allow" cidr="23.253.221.228/32"/>
+	</list>
 
 	vars.xml
-	  <X-PRE-PROCESS cmd="set" data="internal_auth_calls=false"/>
+	<X-PRE-PROCESS cmd="set" data="internal_auth_calls=false"/>
 
 	add dialplan/public.xml.
 	<extension name="from_kamailio">
-      <condition field="network_addr" expression="^23\.253\.221\.228" />
-      <condition field="destination_number" expression="^(.+)$">
-        <action application="transfer" data="$1 XML default"/>
-      </condition>
-    </extension>
+		<condition field="network_addr" expression="^23\.253\.221\.228" />
+		<condition field="destination_number" expression="^(.+)$">
+			<action application="transfer" data="$1 XML default"/>
+		</condition>
+	</extension>
 
 # 7. Playing mp3 files from the http url.
-
-	===================
 	i did re-installation of the freeswitch from the source. 
 	for enabaling mod_shout and mod_v8 module. those are not there in the debian release. 
 	
 	wget -O - https://files.freeswitch.org/repo/deb/debian/freeswitch_archive_g0.pub | apt-key add -
- 
 	echo "deb http://files.freeswitch.org/repo/deb/freeswitch-1.6/ jessie main" > /etc/apt/sources.list.d/freeswitch.list
 	apt-get update
 	apt-get install -y --force-yes freeswitch-video-deps-most
@@ -234,17 +229,15 @@
 	
 	make cd-moh-install
 	make cd-sounds-install
-	===================
-
 
 	vim conf/autoload_configs/modules.conf.xml
 	enable mp3 module in the modules.conf.xml file. 
 	
-    <!--For icecast/mp3 streams/files-->
-    <load module="mod_shout"/>
+	<!--For icecast/mp3 streams/files-->
+	<load module="mod_shout"/>
 	
 	<!-- Languages -->
-    <load module="mod_v8"/>
+	<load module="mod_v8"/>
 
 	root@shaileshpatel-freeswitch1:/usr/local/freeswitch# cat conf/playmp3.js
 	if ( session.ready( ) ) {
@@ -255,67 +248,137 @@
 	  }
 	}
 
-	add following extension to the default dialplan. in file conf/dialplan/default.xml
+	Add following extension to the default dialplan. in file conf/dialplan/default.xml
 	
 	<extension name="mp3play">
-        <condition field="destination_number" expression="^(12223334444)$">
-                <action application="javascript" data="/usr/local/freeswitch/conf/playmp3.js"/>
-        </condition>
-    </extension>
+		<condition field="destination_number" expression="^(12223334444)$">
+			<action application="javascript" data="/usr/local/freeswitch/conf/playmp3.js"/>
+		</condition>
+	</extension>
 
-# 8. bridging between two users. dialplan extension needs be added as below.
-
-    <extension name="bridgetest">
-        <condition field="destination_number" expression="^(15556667777)$">
-                <action application="answer"/>
-                <condition field="caller_id_number" expression="^(testplivo1)$">
-                        <action application="set" data="ringback=${us-ring}"/>
-                        <action application="set" data="call_timeout=50"/>
-                        <action application="set" data="continue_on_fail=true"/>
-                        <action application="set" data="hangup_after_bridge=true"/>
-                        <action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
-                        <action application="bridge" data="sofia/internal/testplivo2@23.253.221.228"/>
-                </condition>
-                <condition field="caller_id_number" expression="^(testplivo2)$">
-                        <action application="set" data="ringback=${us-ring}"/>
-                        <action application="set" data="call_timeout=50"/>
-                        <action application="set" data="continue_on_fail=true"/>
-                        <action application="set" data="hangup_after_bridge=true"/>
-                        <action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
-                        <action application="bridge" data="sofia/internal/testplivo1@23.253.221.228"/>
-                </condition>
-        </condition>
-    </extension>
+# 8. bridging between two users. 
+	default dialplan extension needs be added as below.
+	
+	<extension name="bridgetest">
+	<condition field="destination_number" expression="^(15556667777)$">
+		<action application="answer"/>
+		<condition field="caller_id_number" expression="^(testplivo1)$">
+			<action application="set" data="ringback=${us-ring}"/>
+			<action application="set" data="call_timeout=50"/>
+			<action application="set" data="continue_on_fail=true"/>
+			<action application="set" data="hangup_after_bridge=true"/>
+			<action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
+			<action application="bridge" data="sofia/internal/testplivo2@23.253.221.228"/>
+		</condition>
+		<condition field="caller_id_number" expression="^(testplivo2)$">
+			<action application="set" data="ringback=${us-ring}"/>
+			<action application="set" data="call_timeout=50"/>
+			<action application="set" data="continue_on_fail=true"/>
+			<action application="set" data="hangup_after_bridge=true"/>
+			<action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
+			<action application="bridge" data="sofia/internal/testplivo1@23.253.221.228"/>
+		</condition>
+	</condition>
+	</extension>
 
 	Make routing of the numbers in kamailio. following code needs to be changed. 
 	# Dispatch requests
 	route[DISPATCH] {
-			switch($rU){
-					case /"^12223334444$":
-					case /"^15556667777$":
-							# round robin dispatching on gateways group '1'
-							if(!ds_select_dst("1", "4"))
-							{
-									send_reply("404", "No destination");
-									exit;
-							}
-							xlog("L_DBG", "--- SCRIPT: going to <$ru> via <$du>\n");
-							t_on_failure("RTF_DISPATCH");
-							route(RELAY);
-							exit;
-					case /"^13334445555$":
-							if(!ds_select_dst("1", "3")){
-								if(!ds_select_dst("1", "4"))
-								{
-										send_reply("404", "No destination");
-										exit;
-								}
-							}
-							xlog("L_DBG", "--- SCRIPT: going to <$ru> via <$du>\n");
-							t_on_failure("RTF_DISPATCH");
-							route(RELAY);
-							exit;
-					default:
-							return;
-			}
+		switch($rU){
+			case /"^12223334444$":
+			case /"^15556667777$":
+			case /"^13334445555$":
+				# round robin dispatching on gateways group '1'
+				if(!ds_select_dst("1", "4"))
+				{
+						send_reply("404", "No destination");
+						exit;
+				}
+				xlog("L_DBG", "--- SCRIPT: going to <$ru> via <$du>\n");
+				t_on_failure("RTF_DISPATCH");
+				route(RELAY);
+				exit;
+			default:
+				return;
+		}
 	}
+# 9. Demo Conference should land in previously selected freeswitch, which is based on round robin.
+	Both Freeswitch server will run one events python module. this module will listen on the ESL(Event Socket Listener) of each 
+	Freeswitch and process events for the demo conference. there are custom events coming for the conference creation and deletion.
+	event has Action header which has value conference_create and conference_destroy. 
+	in case of conference_create creating new <key,value> pair for the <demo_status,1> and freeswitch ip address from the 
+	FreeSWITCH-IPv4 header to <demo,23.253.221.151> in the redis database. redis is installed on the kamailio machine. following is 
+	script of the events.py. when conference destroy set <demo_status,0> demo_status to 0. 
+	#!/usr/bin/env python
+	'''
+	events.py - subscribe to all events and print them to stdout
+	'''
+	import ESL
+	import redis
+
+	con = ESL.ESLconnection('localhost', '8021', 'ClueCon')
+	r = redis.StrictRedis(host='23.253.221.228', port=6379, db=0)
+
+	if con.connected:
+	con.events('plain', 'all')
+	while 1:
+	e = con.recvEvent()
+	if e:
+	    #print e.serialize()
+	    if e.getHeader("Event-Name") == "CUSTOM":
+		if e.getHeader("Event-Subclass") == "conference::maintenance":
+			if e.getHeader("Conference-Name") == "demo":
+				print e.getHeader("Action")
+				if e.getHeader("Action") == "conference-create":
+					r.set('demo', e.getHeader("FreeSWITCH-IPv4"))
+					r.set('demo_status', 1 )
+					print("demo new conference created");
+
+				if e.getHeader("Action") == "conference-destroy":
+					r.delete(['demo'])
+					r.set('demo_status', 0 )
+					print("demo conference destroy");
+				'''
+				print e.getHeader("Event-Name")
+				print e.getHeader("Event-Subclass")
+				print e.getHeader("Event-Calling-Function")
+				print e.getHeader("Conference-Name")
+				print e.getHeader("Action")
+				'''
+
+	Use this redis database values of demo_status and demo in the kamailio cfg for the routing of calls for the existing conference. 
+	
+	from kamailio compile and install ndb_redis module. load ndb_redis module. 
+
+	loadmodule "ndb_redis.so"
+	
+	initialize the ndb_redis module. connect it for the fetching demo_status and demo values. 
+	
+	modparam("ndb_redis", "server", "name=redisconf;addr=127.0.0.1;port=6379;db=0")
+	
+	route the invite whose $rU is pointing to the 13334445555 and whose demo conference is already created on freeswitch 
+	server then relay to the same freeswitch server. otherwise follow round robin scheduling as above mention in the 
+	route[DISPATCH]. 
+	
+	route[CONFERENCE] {
+		switch($rU){
+			case /"^13334445555$":
+			if(redis_cmd("redisconf", "GET demo_status", "r")) {
+				if($redis(r=>value) > 0){
+					if(redis_cmd("redisconf", "GET demo", "r")) {
+						$du = "sip:" + $redis(r=>value) + ":" + 5060;
+						route(RELAY);
+						exit;
+					}
+				}
+			}
+			break;
+			default:
+			break;
+			}
+		return;
+	}
+
+
+
+	
