@@ -379,6 +379,15 @@
 		return;
 	}
 
+# 10 RTPEngine for the kamailio. 
+	i follow instruction from the 
+	http://www.sillycodes.com/2015/08/installing-rtpengine-on-ubuntu-1404.html
+	to install rtpengine on the debian. current git-master version installed. 
+	
+	rtpengine --version
+	5.0.0.0+0~mr5.0.0.0 git-master-303a40b
+
+	
 
 
 	
