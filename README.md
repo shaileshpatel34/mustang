@@ -386,7 +386,68 @@
 	
 	rtpengine --version
 	5.0.0.0+0~mr5.0.0.0 git-master-303a40b
+	
+	kamailio rtpengine configuration. 
+	
+	#load rtpengine module. 
+	loadmodule rtpengine.so
+	
+	# rtpengine parameter
+	modparam("rtpengine", "rtpengine_sock", "udp:23.253.221.228:22222")
+	
+	# 200 OK or ACK sdp handling. 
+	onreply_route[1] {
+		if (has_body("application/sdp")) {
+			rtpengine_answer("ICE=remove");
+		}
+	}
+	onreply_route[2] {
+		if (has_body("application/sdp")) {
+			rtpengine_offer("ICE=remove");
+		}
+	}
+	
+	# Dispatch requests - intercept invite and ask for new sdp from the rtpengine. for proxy. 
+	route[DISPATCH] {
+		if (is_method("INVITE|REFER")) {
+			if (has_body("application/sdp")) {
+				if (rtpengine_offer("ICE=remove")) {
+					t_on_reply("1");
+				}
+			} else {
+				t_on_reply("2");
+			}
+			switch($rU){
+				case /"^12223334444$":
+				case /"^15556667777$":
+				case /"^13334445555$":
+					# round robin dispatching on gateways group '1'
+					if(!ds_select_dst("1", "4"))
+					{
+						send_reply("404", "No destination");
+						exit;
+					}
+					xlog("L_INFO", "--- SCRIPT: going to <$ru> via <$du>\n");
+					t_on_failure("RTF_DISPATCH");
+					route(RELAY);
+					exit;
+				default:
+					return;
+			}
+		}
 
+		if (is_method("ACK") && has_body("application/sdp")) {
+			rtpengine_answer("ICE=remove");
+		}
+	}
+
+	After above changes in theh kamailio cfg file. kamailio is doing RTP Proxy. and do proxy for the freeswitch media
+	as well. 
+	
+	SRTP Proxy.
+	
+
+	
 	
 
 
