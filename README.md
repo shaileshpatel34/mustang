@@ -446,6 +446,19 @@
 	
 	SRTP Proxy.
 	
+	TLS configured in the kamailio using following link.
+	http://nil.uniza.sk/network-security/tls/configuring-tls-support-kamailio-31-howto
+	
+	configure listen ip address as tls listener. 
+	
+	listen=tls:23.253.221.228:5061
+	
+	define TLS as given below. this will enable the tls.
+	
+	#!define WITH_TLS
+	
+	
+
 
 	
 	
