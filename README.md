@@ -510,7 +510,7 @@
 	1 sips:23.253.221.151:5061
 	1 sips:23.253.221.87:5061
 
-	
+# Note: I used X-Lite desktop client and Zoiper voip client for the testing purpose. and Wireshark used for the sip/rtp packet analysis. 
 
 
 	
