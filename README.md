@@ -458,9 +458,58 @@
 	#!define WITH_TLS
 	
 	
+	http://nil.uniza.sk/network-security/tls/configuring-tls-support-kamailio-31-howto using this. 
+	Enable TLS on both freeswitch server. Generate self signed certificate using. 
+	root@shaileshpatel-freeswitch1:/usr/local/freeswitch/bin# ./gentls_cert setup -cn 127.0.0.1 -alt DNS:localhost -org 127.0.0.1
+	Creating new CA...
+	Generating a 2048 bit RSA private key
+	..........+++
+	................................................................................................................+++
+	writing new private key to '/usr/local/freeswitch/conf/ssl/CA/cakey.pem'
+	-----
+	DONE
+	root@shaileshpatel-freeswitch1:/usr/local/freeswitch/bin# ./gentls_cert create_server -cn 127.0.0.1 -alt DNS:localhost -org 127.0.0.1
+	Generating new certificate...
 
+	--------------------------------------------------------
+	CN: "127.0.0.1"
+	ORG_NAME: "127.0.0.1"
+	ALT_NAME: "DNS:localhost"
 
+	Certificate filename "agent.pem"
+
+	[Is this OK? (y/N)]
+	y
+	Generating a 2048 bit RSA private key
+	.............+++
+	............................................................................+++
+	writing new private key to '/tmp/fs-ca-465-20161010045108.key'
+	-----
+	Signature ok
+	subject=/CN=127.0.0.1/O=127.0.0.1
+	Getting CA Private Key
+	DONE
+
+	configure vars for the tls support. 
+	<X-PRE-PROCESS cmd="set" data="internal_tls_port=5061"/>
+	<X-PRE-PROCESS cmd="set" data="internal_ssl_enable=true"/>
+	<X-PRE-PROCESS cmd="set" data="internal_ssl_dir=$${base_dir}/conf/ssl"/>
+
+	reloadxml. 
 	
+	and configure the dispatcher.list for the 5061 port. for the tls support. 
+	root@shaileshpatel-kamailio:/usr/local/etc/kamailio# cat dispatcher.list
+	# $Id$
+	# dispatcher destination sets
+	#
+
+	# line format
+	# setit(int) destination(sip uri) flags(int,opt) priority(int,opt) attributes(str,opt)
+
+	# freeswitch
+	1 sips:23.253.221.151:5061
+	1 sips:23.253.221.87:5061
+
 	
 
 
