@@ -260,26 +260,26 @@
 	default dialplan extension needs be added as below.
 	
 	<extension name="bridgetest">
-	<condition field="destination_number" expression="^(15556667777)$">
-		<action application="answer"/>
-		<condition field="caller_id_number" expression="^(testplivo1)$">
-			<action application="set" data="ringback=${us-ring}"/>
-			<action application="set" data="call_timeout=50"/>
-			<action application="set" data="continue_on_fail=true"/>
-			<action application="set" data="hangup_after_bridge=true"/>
-			<action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
-			<action application="bridge" data="sofia/internal/testplivo2@23.253.221.228"/>
-		</condition>
-		<condition field="caller_id_number" expression="^(testplivo2)$">
-			<action application="set" data="ringback=${us-ring}"/>
-			<action application="set" data="call_timeout=50"/>
-			<action application="set" data="continue_on_fail=true"/>
-			<action application="set" data="hangup_after_bridge=true"/>
-			<action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
-			<action application="bridge" data="sofia/internal/testplivo1@23.253.221.228"/>
-		</condition>
-	</condition>
+		<condition field="destination_number" expression="^(15556667777)$" break="on-false"/>
+			<action application="answer"/>
+			<condition field="caller_id_number" expression="^(testplivo1)$" break="on-true">
+				<action application="set" data="ringback=${us-ring}"/>
+				<action application="set" data="call_timeout=50"/>
+				<action application="set" data="continue_on_fail=true"/>
+				<action application="set" data="hangup_after_bridge=true"/>
+				<action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
+				<action application="bridge" data="{sip_cid_type=none}sofia/internal/testplivo2@10.209.164.165"/>
+			</condition>
+			<condition field="caller_id_number" expression="^(testplivo2)$" break="on-true">
+				<action application="set" data="ringback=${us-ring}"/>
+				<action application="set" data="call_timeout=50"/>
+				<action application="set" data="continue_on_fail=true"/>
+				<action application="set" data="hangup_after_bridge=true"/>
+				<action application="export" data="nolocal:absolute_codec_string=PCMA,PCMU"/>
+				<action application="bridge" data="{sip_cid_type=none}sofia/internal/testplivo1@10.209.164.165"/>
+			</condition>
 	</extension>
+
 
 	Make routing of the numbers in kamailio. following code needs to be changed. 
 	# Dispatch requests
@@ -509,7 +509,105 @@
 	# freeswitch
 	1 sips:23.253.221.151:5061
 	1 sips:23.253.221.87:5061
+	
+# 11. Freeswitch running in private network. kamailio as public interface for the sip. 
+	Freeswitch runs in the private network and kamailio running on the public network for the sip users. rtpengine is running 
+	on the kamailio box for the rtp proxy. following is my dispatch routine in the kamailio.cfg file. 
+	# Dispatch requests
+	route[DISPATCH] {
+		if (is_method("INVITE|REFER")){
+			if($Ri == "10.209.164.165"){
+				if (has_body("application/sdp")) {
+					if (rtpengine_offer("direction=priv direction=pub ICE=remove")) {
+						t_on_reply("1");
+					}
+				} else {
+					t_on_reply("2");
+				}
+				return;
+			}
+			switch($rU){
+				case /"^13334445555$":
+					if(redis_cmd("redisconf", "GET demo_status", "r")) {
+						if($redis(r=>value) > 0){
+							if(redis_cmd("redisconf", "GET demo", "r")) {
+								if (has_body("application/sdp")) {
+									if (rtpengine_offer("direction=pub direction=priv ICE=remove")){
+										t_on_reply("1");
+									}
+								} else {
+									t_on_reply("2");
+								}
 
+								$du = "sip:" + $redis(r=>value) + ":" + 5060;
+								#$fs = "tls:23.253.221.228:5061";
+								$fs = "udp:10.209.164.165:5060";
+								route(RELAY);
+								exit;
+							}
+						}
+					}
+				case /"^12223334444$":
+				case /"^15556667777$":
+					if (has_body("application/sdp")) {
+						if (rtpengine_offer("direction=pub direction=priv ICE=remove")) {
+							t_on_reply("1");
+						}
+					} else {
+						t_on_reply("2");
+					}
+
+					# round robin dispatching on gateways group '1'
+					if(!ds_select_dst("2", "4"))
+					{
+						send_reply("404", "No destination");
+						exit;
+					}
+					xlog("L_INFO", "--- SCRIPT: going to <$ru> via <$du>\n");
+					#$fs = "tls:23.253.221.228:5061";
+					$fs = "udp:10.209.164.165:5060";
+					t_on_failure("RTF_DISPATCH");
+					route(RELAY);
+					exit;
+				default:
+					if (has_body("application/sdp")) {
+						if (rtpengine_offer("ICE=remove")) {
+							t_on_reply("1");
+						}
+					} else {
+						t_on_reply("2");
+					}
+			}
+		}
+
+		if (is_method("ACK") && has_body("application/sdp")) {
+			rtpengine_answer("ICE=remove");
+		}
+	}
+
+	New freeswitch set added in the dispatcher.list file. these are local interfaces of freeswitches.  
+	root@shaileshpatel-kamailio:/usr/local/etc/kamailio# cat dispatcher.list
+	# $Id$
+	# dispatcher destination sets
+	#
+
+	# line format
+	# setit(int) destination(sip uri) flags(int,opt) priority(int,opt) attributes(str,opt)
+
+	# freeswitch
+	1 sip:23.253.221.151:5060
+	1 sip:23.253.221.87:5060
+
+	2 sip:10.209.164.143:5060
+	2 sip:10.209.164.82:5060
+
+	in the freeswitch vars.xml file. local_ip_v4 set to ip address of the eth1 interface. 
+	<X-PRE-PROCESS cmd="exec-set" data="local_ip_v4=ip addr show eth1 | awk '/inet /{print $2}' | head -n 1 | cut -d '/' -f 1"/>
+	
+	rtpengine is configured with pub and priv interfaces. and those are used in the kamailio for the sdp processing. 
+	
+	after these configuration changes public(kamailio) private(freeswitch1 & 2) runs with all above test cases passed. 
+	
 # Note: I used X-Lite desktop client and Zoiper voip client for the testing purpose. and Wireshark used for the sip/rtp packet analysis. 
 
 
