@@ -6,5 +6,9 @@
 # setit(int) destination(sip uri) flags(int,opt) priority(int,opt) attributes(str,opt)
 
 # freeswitch
-1 sip:23.253.221.87:5060
 1 sip:23.253.221.151:5060
+1 sip:23.253.221.87:5060
+
+2 sip:10.209.164.143:5060
+2 sip:10.209.164.82:5060
+
