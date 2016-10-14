@@ -379,6 +379,28 @@
 		return;
 	}
 
+	run events.py using the supervisor. following are steps to install it and use it for the events.py running in background. 
+	
+	apt-get install supervisor
+	
+	service supervisor restart
+
+	create a process config file. vim /etc/supervisor/conf.d/events_script.conf. add following content to this fine. 
+	
+	[program:events_script]
+	command=python /usr/src/events.py
+	autostart=true
+	autorestart=true
+	stderr_logfile=/var/log/long.err.log
+	stdout_logfile=/var/log/long.out.log
+
+	supervisorctl reread
+	
+	supervisorctl update
+	
+	after this, events.py will run in background and supervisor will restart events.py if it crashed because of some unknown
+	reason.  
+
 # 10 RTPEngine for the kamailio. 
 	i follow instruction from the 
 	http://www.sillycodes.com/2015/08/installing-rtpengine-on-ubuntu-1404.html
